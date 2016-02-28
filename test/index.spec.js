@@ -5,6 +5,11 @@ describe('Undoable', () => {
   let mockUndoableReducer
   let mockInitialState
   let incrementedState
+  const initialHistory = {
+    past: [0, 1, 2, 3],
+    present: 4,
+    future: [5, 6, 7]
+  }
 
   before('setup mock reducers and states', () => {
     let countInitialState = 0
@@ -21,11 +26,7 @@ describe('Undoable', () => {
     let undoConfig = {
       limit: 100,
       initTypes: 'RE-INITIALIZE',
-      initialHistory: {
-        past: [0, 1, 2, 3],
-        present: 4,
-        future: [5, 6, 7]
-      },
+      initialHistory,
       filter: function (action) {
         switch (action.type) {
           case 'DECREMENT':
@@ -50,8 +51,8 @@ describe('Undoable', () => {
     let doubleIncrementedState = mockUndoableReducer(incrementedState, { type: 'INCREMENT' })
     let reInitializedState = mockUndoableReducer(doubleIncrementedState, { type: 'RE-INITIALIZE' })
 
-    expect(reInitializedState.past.length).to.equal(0)
-    expect(reInitializedState.future.length).to.equal(0)
+    expect(reInitializedState.past.length).to.equal(initialHistory.past.length)
+    expect(reInitializedState.future.length).to.equal(initialHistory.future.length)
   })
 
   describe('Undo', () => {
