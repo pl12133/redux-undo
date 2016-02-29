@@ -193,16 +193,19 @@ export default function undoable (reducer, rawConfig = {}) {
     jumpToPastType: rawConfig.jumpToPastType || ActionTypes.JUMP_TO_PAST,
     jumpToFutureType: rawConfig.jumpToFutureType || ActionTypes.JUMP_TO_FUTURE
   }
-  config.history = rawConfig.initialHistory || createHistory(config.initialState)
+  config.history = rawConfig.initialHistory || createHistory(config.initialState || reducer(undefined, {}))
 
   if (config.initTypes.length === 0) {
     console.warn('redux-undo: supply at least one action type in initTypes to ensure initial state')
   }
 
-  return (state, action) => {
+  return (state = config.history, action = {}) => {
     debugStart(action, state)
     let res
     switch (action.type) {
+      case undefined:
+        return state
+
       case config.undoType:
         res = undo(state)
         debug('after undo', res)
@@ -247,8 +250,8 @@ export default function undoable (reducer, rawConfig = {}) {
           }
         }
 
-        const history = (state && state.present !== undefined) ? state : config.history
-        const updatedHistory = insert(history, res, config.limit)
+        // const history = (state && state.present !== undefined) ? state : config.history
+        const updatedHistory = insert(state, res, config.limit)
         debug('after insert', {history: updatedHistory, free: config.limit - length(updatedHistory)})
         debugEnd()
         return updatedHistory
