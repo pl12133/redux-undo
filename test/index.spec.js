@@ -1,7 +1,7 @@
 let { expect } = require('chai')
 let { default: undoable, ActionCreators, excludeAction } = require('../src/index')
 
-const ignoredActionsOne = ['DECREMENT']
+const excludedActionsOne = ['DECREMENT']
 const testConfigOne = {
   limit: 100,
   initTypes: 'RE-INITIALIZE',
@@ -10,8 +10,8 @@ const testConfigOne = {
     present: 4,
     future: [5, 6, 7]
   },
-  FOR_TEST_ONLY_ignoredActions: ignoredActionsOne,
-  filter: excludeAction(ignoredActionsOne)
+  FOR_TEST_ONLY_excludedActions: excludedActionsOne,
+  filter: excludeAction(excludedActionsOne)
 }
 
 const testConfigTwo = {
@@ -31,7 +31,7 @@ const testConfigThree = {
 }
 
 runTestWithConfig({}, 'Default config')
-runTestWithConfig(testConfigOne, 'Initial History and Filters')
+runTestWithConfig(testConfigOne, 'Initial History and Filter (Exclude Actions)')
 runTestWithConfig(testConfigTwo, 'Initial State equals 100')
 runTestWithConfig(testConfigThree, 'Initial State and Initial History')
 
@@ -39,7 +39,7 @@ runTestWithConfig(testConfigThree, 'Initial State and Initial History')
 // `label` describes the nature of the configuration object used to run a test
 function runTestWithConfig (testConfig, label) {
   describe('Undoable: ' + label, () => {
-    testConfig.initTypes = (Array.isArray(testConfig.initTypes)) ? testConfig.initTypes : [testConfig.initTypes]
+    testConfig.initTypes = (Array.isArray(testConfig.initTypes) || testConfig.initTypes === undefined) ? testConfig.initTypes : [testConfig.initTypes]
     let mockUndoableReducer
     let mockInitialState
     let incrementedState
@@ -82,20 +82,27 @@ function runTestWithConfig (testConfig, label) {
       }
     })
     it('should not record unwanted actions', () => {
-      if (testConfig.FOR_TEST_ONLY_ignoredActions && testConfig.FOR_TEST_ONLY_ignoredActions[0]) {
-        let decrementedState = mockUndoableReducer(mockInitialState, { type: testConfig.FOR_TEST_ONLY_ignoredActions[0] })
+      if (testConfig.FOR_TEST_ONLY_excludedActions && testConfig.FOR_TEST_ONLY_excludedActions[0]) {
+        let decrementedState = mockUndoableReducer(mockInitialState, { type: testConfig.FOR_TEST_ONLY_excludedActions[0] })
 
         expect(decrementedState.past).to.deep.equal(mockInitialState.past)
         expect(decrementedState.future).to.deep.equal(mockInitialState.future)
       }
     })
     it('should reset upon init actions', () => {
-      if (testConfig.initTypes[0]) {
-        let doubleIncrementedState = mockUndoableReducer(incrementedState, {type: 'INCREMENT'})
-        let reInitializedState = mockUndoableReducer(doubleIncrementedState, { type: testConfig.initTypes[0] })
+      let reInitializedState
+      if (testConfig.initTypes && testConfig.initTypes[0]) {
+        reInitializedState = mockUndoableReducer(incrementedState, { type: testConfig.initTypes[0] })
+      } else {
+        reInitializedState = mockUndoableReducer(incrementedState, { type: '@@INIT' })
+      }
 
+      if (testConfig.initialHistory) {
         expect(reInitializedState.past.length).to.equal(testConfig.initialHistory.past.length)
         expect(reInitializedState.future.length).to.equal(testConfig.initialHistory.future.length)
+      } else {
+        expect(reInitializedState.past.length).to.equal(0)
+        expect(reInitializedState.future.length).to.equal(0)
       }
     })
 
