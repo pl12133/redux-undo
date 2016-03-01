@@ -37,16 +37,17 @@ runTestWithConfig(testConfigThree, 'Initial State and Initial History')
 
 // Test undoable reducers as a function of a configuration object
 // `label` describes the nature of the configuration object used to run a test
-function runTestWithConfig(testConfig, label) {
+function runTestWithConfig (testConfig, label) {
   describe('Undoable: ' + label, () => {
     testConfig.initTypes = (Array.isArray(testConfig.initTypes)) ? testConfig.initTypes : [testConfig.initTypes]
     let mockUndoableReducer
     let mockInitialState
     let incrementedState
+    let countReducer
 
     before('setup mock reducers and states', () => {
       let countInitialState = 0
-      let countReducer = (state = countInitialState, action = {}) => {
+      countReducer = (state = countInitialState, action = {}) => {
         switch (action.type) {
           case 'INCREMENT':
             return state + 1
@@ -60,11 +61,26 @@ function runTestWithConfig(testConfig, label) {
       mockInitialState = mockUndoableReducer(undefined, {})
       incrementedState = mockUndoableReducer(mockInitialState, { type: 'INCREMENT' })
       console.info('  Beginning Test! Good luck!')
-      console.info('    mockInitialState:', mockInitialState);
-      console.info('    incrementedState:', incrementedState);
-      console.info('');
+      console.info('    mockInitialState:', mockInitialState)
+      console.info('    incrementedState:', incrementedState)
+      console.info('')
     })
 
+    it('should be initialized with the value of `initialHistory`', () => {
+      if (testConfig.initialHistory) {
+        expect(mockInitialState).to.deep.equal(testConfig.initialHistory)
+      }
+    })
+    it('should be initialized with the value of `initialState` if there is no `initialHistory', () => {
+      if (!testConfig.initialHistory && testConfig.initialState !== undefined) {
+        expect(mockInitialState.present).to.equal(testConfig.initialState)
+      }
+    })
+    it('should be initialized with the value of the default `initialState` of the reducer if there is no `initialState` or `initialHistory', () => {
+      if (!testConfig.initialHistory && testConfig.initialState === undefined) {
+        expect(mockInitialState.present).to.equal(countReducer())
+      }
+    })
     it('should not record unwanted actions', () => {
       if (testConfig.FOR_TEST_ONLY_ignoredActions && testConfig.FOR_TEST_ONLY_ignoredActions[0]) {
         let decrementedState = mockUndoableReducer(mockInitialState, { type: testConfig.FOR_TEST_ONLY_ignoredActions[0] })
