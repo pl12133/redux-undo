@@ -130,6 +130,7 @@ function redo (history) {
 // jumpToFuture: jump to requested index in future history
 function jumpToFuture (history, index) {
   if (index === 0) return redo(history)
+  if (index < 0 || index >= history.future.length) return history
 
   const { past, present, future } = history
 
@@ -145,6 +146,7 @@ function jumpToFuture (history, index) {
 // jumpToPast: jump to requested index in past history
 function jumpToPast (history, index) {
   if (index === history.past.length - 1) return undo(history)
+  if (index < 0 || index >= history.past.length) return history
 
   const { past, present, future } = history
 
