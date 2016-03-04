@@ -29,11 +29,22 @@ const testConfigThree = {
     future: [-1, -2, -3]
   }
 }
+const testConfigFour = {
+  limit: -1,
+  initTypes: [],
+  initialState: null,
+  initialHistory: {
+    past: [5, {}, 3, null, 1],
+    present: undefined,
+    future: []
+  }
+}
 
 runTestWithConfig({}, 'Default config')
 runTestWithConfig(testConfigOne, 'Initial History and Filter (Exclude Actions)')
 runTestWithConfig(testConfigTwo, 'Initial State equals 100')
 runTestWithConfig(testConfigThree, 'Initial State and Initial History')
+runTestWithConfig(testConfigFour, 'Erroneous configuration')
 
 // Test undoable reducers as a function of a configuration object
 // `label` describes the nature of the configuration object used to run a test
@@ -91,8 +102,13 @@ function runTestWithConfig (testConfig, label) {
     })
     it('should reset upon init actions', () => {
       let reInitializedState
-      if (testConfig.initTypes && testConfig.initTypes[0]) {
-        reInitializedState = mockUndoableReducer(incrementedState, { type: testConfig.initTypes[0] })
+      if (testConfig.initTypes) {
+        if (testConfig.initTypes.length) {
+          reInitializedState = mockUndoableReducer(incrementedState, { type: testConfig.initTypes[0] })
+        } else {
+          // No init actions exist
+          return
+        }
       } else {
         reInitializedState = mockUndoableReducer(incrementedState, { type: '@@INIT' })
       }
@@ -112,19 +128,29 @@ function runTestWithConfig (testConfig, label) {
         undoState = mockUndoableReducer(incrementedState, ActionCreators.undo())
       })
       it('should change present state back by one action', () => {
-        expect(undoState.present).to.equal(mockInitialState.present)
+        if (testConfig.limit >= 0) {
+          expect(undoState.present).to.equal(mockInitialState.present)
+        }
       })
       it('should change present state to last element of \'past\'', () => {
-        expect(undoState.present).to.equal(incrementedState.past[incrementedState.past.length - 1])
+        if (testConfig.limit >= 0) {
+          expect(undoState.present).to.equal(incrementedState.past[incrementedState.past.length - 1])
+        }
       })
       it('should add a new element to \'future\' from last state', () => {
-        expect(undoState.future[0]).to.equal(incrementedState.present)
+        if (testConfig.limit >= 0) {
+          expect(undoState.future[0]).to.equal(incrementedState.present)
+        }
       })
       it('should decrease length of \'past\' by one', () => {
-        expect(undoState.past.length).to.equal(incrementedState.past.length - 1)
+        if (testConfig.limit >= 0) {
+          expect(undoState.past.length).to.equal(incrementedState.past.length - 1)
+        }
       })
       it('should increase length of \'future\' by one', () => {
-        expect(undoState.future.length).to.equal(incrementedState.future.length + 1)
+        if (testConfig.limit >= 0) {
+          expect(undoState.future.length).to.equal(incrementedState.future.length + 1)
+        }
       })
       it('should do nothing if \'past\' is empty', () => {
         let undoInitialState = mockUndoableReducer(mockInitialState, ActionCreators.undo())
@@ -144,16 +170,24 @@ function runTestWithConfig (testConfig, label) {
         expect(redoState.present).to.equal(incrementedState.present)
       })
       it('should change present state to first element of \'future\'', () => {
-        expect(redoState.present).to.equal(undoState.future[0])
+        if (testConfig.limit >= 0) {
+          expect(redoState.present).to.equal(undoState.future[0])
+        }
       })
       it('should add a new element to \'past\' from last state', () => {
-        expect(redoState.past[redoState.past.length - 1]).to.equal(undoState.present)
+        if (testConfig.limit >= 0) {
+          expect(redoState.past[redoState.past.length - 1]).to.equal(undoState.present)
+        }
       })
       it('should decrease length of \'future\' by one', () => {
-        expect(redoState.future.length).to.equal(undoState.future.length - 1)
+        if (testConfig.limit >= 0) {
+          expect(redoState.future.length).to.equal(undoState.future.length - 1)
+        }
       })
       it('should increase length of \'past\' by one', () => {
-        expect(redoState.past.length).to.equal(undoState.past.length + 1)
+        if (testConfig.limit >= 0) {
+          expect(redoState.past.length).to.equal(undoState.past.length + 1)
+        }
       })
       it('should do nothing if \'future\' is empty', () => {
         let secondRedoState = mockUndoableReducer(redoState, ActionCreators.redo())
@@ -170,7 +204,7 @@ function runTestWithConfig (testConfig, label) {
       })
       it('should change present to a given value from past', () => {
         const pastState = incrementedState.past[jumpToPastIndex]
-        if (pastState) {
+        if (pastState !== undefined) {
           expect(jumpToPastState.present).to.equal(pastState)
         }
       })
@@ -197,7 +231,7 @@ function runTestWithConfig (testConfig, label) {
       })
       it('should change present to a given value from future', () => {
         const futureState = mockInitialState.future[jumpToFutureIndex]
-        if (futureState) {
+        if (futureState !== undefined) {
           expect(jumpToFutureState.present).to.equal(futureState)
         }
       })
