@@ -250,5 +250,19 @@ function runTestWithConfig (testConfig, label) {
         }
       })
     })
+    describe('Clear History', () => {
+      let clearedState
+
+      before('perform a clearHistory action', () => {
+        clearedState = mockUndoableReducer(incrementedState, ActionCreators.clearHistory())
+      })
+      it('should clear future and past', () => {
+        expect(clearedState.past.length).to.equal(0)
+        expect(clearedState.future.length).to.equal(0)
+      })
+      it('should preserve the present value', () => {
+        expect(clearedState.present).to.equal(incrementedState.present)
+      })
+    })
   })
 }
