@@ -162,5 +162,59 @@ function runTestWithConfig (testConfig, label) {
         }
       })
     })
+    describe('JumpToPast', () => {
+      const jumpToPastIndex = 0
+      let jumpToPastState
+      before('perform a jumpToPast action', () => {
+        jumpToPastState = mockUndoableReducer(incrementedState, ActionCreators.jumpToPast(jumpToPastIndex))
+      })
+      it('should change present to a given value from past', () => {
+        const pastState = incrementedState.past[jumpToPastIndex]
+        if (pastState) {
+          expect(jumpToPastState.present).to.equal(pastState)
+        }
+      })
+      it('should do nothing if past index is out of bounds', () => {
+        let jumpToOutOfBounds = mockUndoableReducer(incrementedState, ActionCreators.jumpToPast(-1))
+        expect(jumpToOutOfBounds).to.deep.equal(incrementedState)
+      })
+      it('should increase the length of future if successful', () => {
+        if (incrementedState.past.length > jumpToPastIndex) {
+          expect(jumpToPastState.future.length).to.be.above(incrementedState.future.length)
+        }
+      })
+      it('should decrease the length of past if successful', () => {
+        if (incrementedState.past.length > jumpToPastIndex) {
+          expect(jumpToPastState.past.length).to.be.below(incrementedState.past.length)
+        }
+      })
+    })
+    describe('JumpToFuture', () => {
+      const jumpToFutureIndex = 2
+      let jumpToFutureState
+      before('perform a jumpToFuture action', () => {
+        jumpToFutureState = mockUndoableReducer(mockInitialState, ActionCreators.jumpToFuture(jumpToFutureIndex))
+      })
+      it('should change present to a given value from future', () => {
+        const futureState = mockInitialState.future[jumpToFutureIndex]
+        if (futureState) {
+          expect(jumpToFutureState.present).to.equal(futureState)
+        }
+      })
+      it('should do nothing if future index is out of bounds', () => {
+        let jumpToOutOfBounds = mockUndoableReducer(mockInitialState, ActionCreators.jumpToFuture(-1))
+        expect(jumpToOutOfBounds).to.deep.equal(mockInitialState)
+      })
+      it('should increase the length of past if successful', () => {
+        if (mockInitialState.future.length > jumpToFutureIndex) {
+          expect(jumpToFutureState.past.length).to.be.above(mockInitialState.past.length)
+        }
+      })
+      it('should decrease the length of future if successful', () => {
+        if (mockInitialState.future.length > jumpToFutureIndex) {
+          expect(jumpToFutureState.future.length).to.be.below(mockInitialState.future.length)
+        }
+      })
+    })
   })
 }
