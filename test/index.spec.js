@@ -110,7 +110,7 @@ function runTestWithConfig (testConfig, label) {
           return
         }
       } else {
-        reInitializedState = mockUndoableReducer(incrementedState, { type: '@@INIT' })
+        reInitializedState = mockUndoableReducer(incrementedState, { type: '@@redux-undo/INIT' })
       }
 
       if (testConfig.initialHistory) {
