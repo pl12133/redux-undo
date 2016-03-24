@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { createStore } from 'redux'
-import undoable, { ActionCreators, excludeAction, includeAction, isHistory } from '../src/index'
+import undoable, { ActionCreators, excludeAction, includeAction, includeActionDebounced, isHistory } from '../src/index'
 
 const decrementActions = ['DECREMENT']
 
@@ -40,6 +40,10 @@ const initialStateThree = {
   present: Math.pow(2, 32),
   future: []
 }
+const testConfigFour = {
+  FOR_TEST_ONLY_includeActionsDebounced: decrementActions,
+  filter: includeActionDebounced(decrementActions, 250)
+}
 
 runTestWithConfig({}, undefined, 'Default config')
 runTestWithConfig({ initTypes: [] }, undefined, 'No Init types')
@@ -49,6 +53,7 @@ runTestWithConfig(testConfigZero, undefined, 'Filter (Include Actions)')
 runTestWithConfig(testConfigOne, initialStateOne, 'Initial History and Filter (Exclude Actions)')
 runTestWithConfig(testConfigTwo, initialStateTwo, 'Initial State and Init types')
 runTestWithConfig(testConfigThree, initialStateThree, 'Erroneous configuration')
+runTestWithConfig(testConfigFour, initialStateOne, 'includeDebouncedActions filter')
 
 // Test undoable reducers as a function of a configuration object
 // `label` describes the nature of the configuration object used to run a test
@@ -174,6 +179,37 @@ function runTestWithConfig (testConfig, initialStoreState, label) {
         expect(dummyState).to.deep.equal(incrementedState)
       })
 
+      it('should be able to debounce in filtering', (done) => {
+        if (testConfig.FOR_TEST_ONLY_includeActionsDebounced) {
+          let steps = []
+          // The first action should be stored into past
+          steps.push(mockUndoableReducer(incrementedState, { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] }))
+          // All subsequent actions should not be stored
+          steps.push(mockUndoableReducer(steps[0], { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] }))
+          steps.push(mockUndoableReducer(steps[1], { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] }))
+          steps.push(mockUndoableReducer(steps[2], { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] }))
+          steps.push(mockUndoableReducer(steps[3], { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] }))
+          steps.push(mockUndoableReducer(steps[4], { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] }))
+          steps.push(mockUndoableReducer(steps[5], { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] }))
+          let lastStep = steps[steps.length - 1]
+          expect(lastStep.past.length).to.equal(steps[0].past.length)
+          expect(lastStep.past).to.deep.equal(steps[0].past)
+
+          // After a delay the filter will again allow actions
+          setTimeout(() => {
+            try {
+              let delayedStep = mockUndoableReducer(lastStep, { type: testConfig.FOR_TEST_ONLY_includeActionsDebounced[0] })
+              expect(delayedStep.past.length).to.equal(lastStep.past.length + 1)
+              expect(delayedStep.past[delayedStep.past.length - 1]).to.equal(lastStep.present)
+              done()
+            } catch (e) {
+              done(e)
+            }
+          }, 300)
+        } else {
+          done()
+        }
+      })
       it('should reset upon init actions', () => {
         let reInitializedState
         if (testConfig.initTypes) {

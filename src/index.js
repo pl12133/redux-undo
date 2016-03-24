@@ -374,3 +374,37 @@ export function excludeAction (rawActions = []) {
   return (action) => actions.indexOf(action.type) < 0
 }
 // /excludeAction
+
+// includeActionDebounced helper
+// Do not store an action if that action has
+// occured within ${timeout} milliseconds
+export function includeActionDebounced (rawActions, timeout = 0) {
+  const timer = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance
+    : Date
+  let ignoreAction = false
+  let prevActionType
+  let lastTime = timer.now()
+
+  const actions = parseActions(rawActions)
+  return (action) => {
+    if (actions.indexOf(action.type) < 0) {
+      return false
+    }
+    if (action.type !== prevActionType) {
+      lastTime = timer.now()
+      prevActionType = action.type
+      return true
+    }
+    ignoreAction = true
+    const now = timer.now()
+    const took = (now - lastTime).toFixed()
+    lastTime = now
+    if (took > timeout) {
+      ignoreAction = false
+    }
+    // console.info(`${took}ms since last ${prevActionType}, ignored: ${ignoreAction}`)
+    return !ignoreAction
+  }
+}
+// /includeActionDebounded
