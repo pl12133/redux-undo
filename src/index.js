@@ -2,14 +2,14 @@
 let __DEBUG__
 /* istanbul ignore next: debug messaging is not tested */
 let debug = (function debugGrouper () {
-  let displayBuffer
+  let displayBuffer = {}
   const colors = {
     prevState: '#9E9E9E',
     action: '#03A9F4',
     nextState: '#4CAF50'
   }
   function initBuffer () {
-    displayBuffer = {
+    return {
       header: [],
       prev: [],
       action: [],
@@ -43,8 +43,8 @@ let debug = (function debugGrouper () {
     ]
   }
   function start (action, state) {
-    initBuffer()
     if (__DEBUG__) {
+      displayBuffer = initBuffer()
       if (console.group) {
         displayBuffer.header = ['%credux-undo', 'font-style: italic', 'action', action.type]
         displayBuffer.action = colorFormat('action', colors.action, action)
